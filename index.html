@@ -2,19 +2,61 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>空間設計器 - 走道與柱子設定版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>空間設計器 - iPhone 優化版</title>
     <style>
         :root { --primary: #4A90E2; --bg: #1a1a1a; --accent: #8e44ad; }
-        body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100vh; overflow: hidden; }
+        
+        /* 使用 dvh 確保在 Safari 導覽列出現時高度依然正確 */
+        body { 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            display: flex; 
+            flex-direction: row; 
+            margin: 0; 
+            background-color: var(--bg); 
+            height: 100dvh; 
+            overflow: hidden; 
+        }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100% !important; height: 45vh; order: 2; border-top: 2px solid #444; }
-            #canvas-container { height: 55vh; order: 1; display: flex; align-items: center; justify-content: center; padding: 5px; box-sizing: border-box; }
+            #sidebar { width: 100% !important; height: 45dvh; order: 2; border-top: 1px solid #444; }
+            #canvas-container { 
+                height: 55dvh; 
+                order: 1; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                padding: 10px; 
+                box-sizing: border-box;
+                overflow-y: auto !important; /* 允許垂直捲動以看到被遮擋的部分 */
+            }
         }
+
         #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; box-sizing: border-box; }
-        #canvas-container { flex-grow: 1; background: #333; overflow: hidden; position: relative; }
-        canvas { background-color: white; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; touch-action: none; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
+        
+        /* 核心優化：增加底部間距防止被 iPhone 選單遮擋 */
+        #canvas-container { 
+            flex-grow: 1; 
+            background: #333; 
+            overflow: auto; 
+            position: relative; 
+            padding-bottom: 80px; 
+            -webkit-overflow-scrolling: touch;
+        }
+
+        canvas { 
+            background-color: white; 
+            max-width: 100%; 
+            max-height: 100%; 
+            width: auto; height: auto;
+            object-fit: contain; 
+            display: block; 
+            touch-action: none; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+
         .accordion-header { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; margin-top: 10px; font-weight: bold; font-size: 14px; }
         .accordion-content { display: none; padding: 10px; border: 1px solid #ddd; border-top: none; background: #fff; }
         .accordion-content.active { display: block; }
@@ -31,7 +73,7 @@
 <body>
 
 <div id="sidebar">
-    <h3 style="margin:0 0 10px 0;">空間設計 (950x740)</h3>
+    <h3 style="margin:0 0 10px 0;">空間設計 (iPhone優化)</h3>
     <button onclick="addFurniture()">＋ 新增家具</button>
     <button class="btn-zone" onclick="addZone()">＋ 新增底色區域</button>
 
@@ -85,13 +127,9 @@
     let furnitures = [], zones = [], selectedIndex = -1, isDragging = false, offset = { x: 0, y: 0 };
 
     initColorGrid();
-    
-    // 初始化預設資料 (已更新名稱)
     zones.push({ name: "走道", x: 0, y: 0, w: 150, h: 740, color: "#ffb347" });
     zones.push({ name: "柱子1", x: 430, y: 700, w: 40, h: 40, color: "#222222" });
     zones.push({ name: "柱子2", x: 430, y: 0, w: 40, h: 40, color: "#222222" });
-    
-    addFurniture("示例桌子", 550, 370, 120, 70);
     renderZoneList();
 
     function toggleAccordion(id) {
@@ -132,14 +170,10 @@
 
     function draw() {
         ctx.clearRect(0, 0, CW, CH);
-        
-        // 1. 底色區域
         zones.forEach(z => {
             ctx.fillStyle = z.color;
             ctx.fillRect(z.x, CH - (z.y + z.h), z.w, z.h);
         });
-
-        // 2. 網格線
         for (let i = 0; i <= CW; i += 50) {
             ctx.beginPath(); 
             ctx.strokeStyle = (i % 100 === 0) ? '#666' : '#999';
@@ -160,8 +194,6 @@
                 ctx.fillText(j, 5, CH - j - 2);
             }
         }
-
-        // 3. 家具 (字體加大)
         furnitures.forEach((f, idx) => {
             ctx.save();
             ctx.translate(f.x + f.w/2, CH - (f.y + f.h/2));
@@ -171,7 +203,6 @@
             ctx.lineWidth = (idx === selectedIndex) ? 4 : 2;
             ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
             ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
-            
             ctx.fillStyle = getContrastYIQ(f.color);
             ctx.font = 'bold 24px "Microsoft JhengHei"';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
