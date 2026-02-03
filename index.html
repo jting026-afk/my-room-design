@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>空間設計器 - 圓形家具與完美置中版</title>
+    <title>空間設計器 - 縮小安全邊界版</title>
     <style>
         :root { --primary: #4A90E2; --bg: #1a1a1a; --accent: #8e44ad; }
         body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100dvh; overflow: hidden; }
@@ -11,7 +11,12 @@
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #sidebar { width: 100% !important; height: 42dvh; order: 2; border-top: 1px solid #444; }
-            #canvas-container { height: 58dvh; order: 1; }
+            #canvas-container { 
+                height: 58dvh; 
+                order: 1; 
+                padding: 10px; /* 增加外部容器墊片 */
+                box-sizing: border-box;
+            }
         }
 
         #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; z-index: 10; position: relative; }
@@ -22,15 +27,19 @@
             overflow: hidden; 
             position: relative; 
             touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         canvas { 
             background-color: white; 
             display: block; 
-            position: absolute; /* 強制絕對定位以精確控制置中 */
-            top: 10px;
-            left: 50%;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            position: absolute;
+            /* 核心修正：強制最大寬度，確保不超出 */
+            max-width: 92vw; 
+            max-height: 50dvh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
             transform-origin: center center;
         }
 
@@ -39,10 +48,10 @@
         .accordion-content.active { display: block; }
         
         .shape-selector { display: flex; gap: 5px; margin-bottom: 8px; }
-        .shape-btn { flex: 1; padding: 8px; border: 1px solid #ccc; background: #eee; cursor: pointer; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .shape-btn { flex: 1; padding: 10px; border: 1px solid #ccc; background: #eee; cursor: pointer; border-radius: 4px; font-size: 13px; font-weight: bold; }
         .shape-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 5px; }
         .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
         .color-dot { width: 100%; aspect-ratio: 1; border-radius: 3px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
         button { width: 100%; padding: 12px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
@@ -121,12 +130,11 @@
     renderZoneList();
 
     function autoFit() {
-        const padding = 40; // 增加邊距緩衝
+        const padding = 80; // 大幅增加邊距緩衝，強迫畫布縮小
         const availableW = container.clientWidth - padding;
         const availableH = container.clientHeight - padding;
         view.scale = Math.min(availableW / CW, availableH / CH);
-        // 重置為絕對居中位移
-        view.x = 0; view.y = 0;
+        view.x = 0; view.y = 0; // 重置位移至中央
         applyTransform();
     }
 
@@ -134,7 +142,8 @@
     window.onresize = autoFit;
 
     function applyTransform() {
-        // 使用 translateX(-50%) 來配合 left: 50% 達成完美水平居中
+        // 使用 left 50% 與 translateX(-50%) 鎖死中心位置
+        canvas.style.left = "50%";
         canvas.style.transform = `translate3d(calc(-50% + ${view.x}px), ${view.y}px, 0) scale(${view.scale})`;
     }
 
@@ -171,7 +180,7 @@
             ctx.fillRect(z.x, CH - (z.y + z.h), z.w, z.h);
         });
         
-        // 網格
+        // 網格刻度
         for (let i = 0; i <= CW; i += 50) {
             ctx.beginPath(); ctx.strokeStyle = (i % 100 === 0) ? '#666' : '#999';
             ctx.lineWidth = (i % 100 === 0) ? 1.5 : 0.8;
@@ -185,7 +194,6 @@
             if (j % 100 === 0 && j !== 0) { ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial'; ctx.fillText(j, 5, CH - j - 2); }
         }
 
-        // 家具繪製
         furnitures.forEach((f, idx) => {
             ctx.save();
             ctx.translate(f.x + f.w/2, CH - (f.y + f.h/2));
@@ -195,13 +203,9 @@
             ctx.lineWidth = (idx === selectedIndex) ? 4 : 2;
 
             if (f.shape === "circle") {
-                ctx.beginPath();
-                ctx.arc(0, 0, f.w / 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, f.w / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
             } else {
-                ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
-                ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
+                ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h); ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
             }
 
             ctx.fillStyle = (f.color === "#222222") ? "white" : "#333";
@@ -274,11 +278,9 @@
             document.getElementById('editName').value = f.name;
             document.getElementById('editW').value = f.w;
             document.getElementById('editH').value = f.h;
-            // 更新按鈕狀態
             document.getElementById('shapeRect').className = `shape-btn ${f.shape === 'rect' ? 'active' : ''}`;
             document.getElementById('shapeCircle').className = `shape-btn ${f.shape === 'circle' ? 'active' : ''}`;
-            // 隱藏/顯示高度輸入框 (圓形只需要寬度/直徑)
-            document.getElementById('editH').style.display = f.shape === 'circle' ? 'none' : 'block';
+            document.getElementById('editH').parentElement.style.display = f.shape === 'circle' ? 'none' : 'flex';
         } else { panel.style.display = 'none'; }
         updateList();
     }
@@ -290,8 +292,7 @@
         furnitures.forEach((f, idx) => {
             const li = document.createElement('div');
             li.className = `item-list-li ${idx === selectedIndex ? 'selected' : ''}`;
-            const sizeText = f.shape === 'circle' ? `直徑 ${f.w}` : `${f.w}x${f.h}`;
-            li.innerHTML = `<span>${f.name} (${f.shape==='rect'?'方':'圓'})</span><small>${sizeText} cm</small>`;
+            li.innerHTML = `<span>${f.name}</span><small>${f.shape==='circle'?'直徑':'高'}${f.shape==='circle'?f.w:f.h} cm</small>`;
             li.onclick = () => { selectedIndex = idx; updateUI(); };
             list.appendChild(li);
         });
