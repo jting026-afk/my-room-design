@@ -3,75 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>房間設計器 - 附操作說明版</title>
+    <title>空間設計器 - 950x740 完整版</title>
     <style>
-        :root { --primary: #4A90E2; --bg: #333; --accent: #8e44ad; }
+        :root { --primary: #4A90E2; --bg: #1a1a1a; --accent: #8e44ad; }
         body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100vh; overflow: hidden; }
         
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100% !important; height: 45vh; order: 2; border-top: 2px solid #555; }
-            #canvas-container { height: 55vh; order: 1; }
+            #sidebar { width: 100% !important; height: 45vh; order: 2; border-top: 2px solid #444; }
+            #canvas-container { height: 55vh; order: 1; display: flex; align-items: center; justify-content: center; padding: 5px; box-sizing: border-box; }
         }
 
         #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; box-sizing: border-box; }
-        #canvas-container { flex-grow: 1; background: #222; overflow: auto; display: block; position: relative; -webkit-overflow-scrolling: touch; }
-        canvas { background-color: white; display: block; margin: 20px; touch-action: none; }
+        #canvas-container { flex-grow: 1; background: #333; overflow: hidden; position: relative; }
+        
+        canvas { 
+            background-color: white; 
+            max-width: 100%; 
+            max-height: 100%; 
+            width: auto; height: auto;
+            object-fit: contain; 
+            display: block; 
+            touch-action: none; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
 
-        /* 摺疊面板 */
-        .accordion-header { 
-            display: flex; justify-content: space-between; align-items: center;
-            background: #f8f9fa; padding: 10px; border-radius: 5px; cursor: pointer;
-            border: 1px solid #ddd; margin-top: 10px; font-weight: bold; color: #333;
-        }
-        .accordion-header.active { background: #eef1f4; border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-        .accordion-content { 
-            display: none; padding: 10px; border: 1px solid #ddd; border-top: none;
-            border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; background: #fff;
-        }
+        .accordion-header { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        .accordion-header.active { background: #eef1f4; }
+        .accordion-content { display: none; padding: 10px; border: 1px solid #ddd; border-top: none; background: #fff; }
         .accordion-content.active { display: block; }
-        .arrow { transition: transform 0.3s; font-size: 0.8em; }
-        .active .arrow { transform: rotate(180deg); }
-
-        /* 使用說明樣式 */
-        .guide-box { 
-            background: #fff9db; border: 1px solid #ffec99; padding: 10px; 
-            border-radius: 5px; margin-bottom: 10px; font-size: 0.85em; color: #856404;
-            line-height: 1.5;
-        }
-        .guide-box b { color: #d9480f; }
-
-        /* 清單樣式 */
-        .item-list-li { 
-            padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center; font-size: 14px;
-        }
-        .item-list-li.selected { background: #e3f2fd; border-left: 4px solid var(--primary); font-weight: bold; }
         
-        .control-panel { border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: #fafafa; }
+        .guide-box { background: #fff9db; border: 1px solid #ffec99; padding: 8px; border-radius: 4px; font-size: 12px; color: #856404; margin-bottom: 10px; }
+        .item-list-li { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; }
+        .item-list-li.selected { background: #e3f2fd; border-left: 4px solid var(--primary); }
+
         input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 8px; }
+        .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 5px; }
+        .color-dot { width: 100%; aspect-ratio: 1; border-radius: 3px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
         
-        .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 5px; }
-        .color-dot { width: 100%; aspect-ratio: 1; border-radius: 4px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
-        .color-dot.active { border: 2px solid #000; }
-
         button { width: 100%; padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
         .btn-zone { background: var(--accent); }
-        .btn-danger { background: #e74c3c; margin-top: 8px; }
-        .rotate-group { display: flex; gap: 5px; margin-top: 5px; }
-        .btn-secondary { background: #607d8b; flex: 1; }
+        .btn-danger { background: #e74c3c; margin-top: 5px; font-size: 12px; padding: 5px; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>房間設計 Pro</h2>
+    <h3 style="margin:0 0 10px 0;">空間設計 (950x740)</h3>
     <button onclick="addFurniture()">＋ 新增家具</button>
     <button class="btn-zone" onclick="addZone()">＋ 新增底色區域</button>
 
     <div class="accordion-header active" onclick="toggleAccordion('listContent')">
         <span>家具清單 <small id="furnitureCount">(0)</small></span>
-        <span class="arrow">▼</span>
+        <span>▼</span>
     </div>
     <div id="listContent" class="accordion-content active">
         <div id="furnitureListContainer"></div>
@@ -79,37 +63,34 @@
 
     <div id="editPanel" style="display:none;">
         <div class="accordion-header active" onclick="toggleAccordion('furnitureContent')">
-            <span>編輯選中家具</span>
-            <span class="arrow">▼</span>
+            <span>編輯家具屬性</span>
+            <span>▼</span>
         </div>
         <div id="furnitureContent" class="accordion-content active">
-            <div class="control-panel">
-                <input type="text" id="editName" oninput="updateSelected()" placeholder="名稱">
-                <div style="display: flex; gap: 5px;">
-                    <input type="number" id="editW" oninput="updateSelected()" placeholder="長 W">
-                    <input type="number" id="editH" oninput="updateSelected()" placeholder="寬 H">
-                </div>
-                <div class="color-grid" id="colorGrid"></div>
-                <div class="rotate-group">
-                    <button class="btn-secondary" onclick="rotateStep(-30)">↺ -30°</button>
-                    <button class="btn-secondary" onclick="rotateStep(30)">+30° ↻</button>
-                </div>
-                <button class="btn-danger" onclick="deleteSelected()">刪除此家具</button>
+            <input type="text" id="editName" oninput="updateSelected()" placeholder="名稱">
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="editW" oninput="updateSelected()" placeholder="寬 W (cm)">
+                <input type="number" id="editH" oninput="updateSelected()" placeholder="長 H (cm)">
             </div>
+            <div class="color-grid" id="colorGrid"></div>
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <button style="background:#607d8b; flex:1;" onclick="rotateStep(-30)">↺ -30°</button>
+                <button style="background:#607d8b; flex:1;" onclick="rotateStep(30)">+30° ↻</button>
+            </div>
+            <button class="btn-danger" style="width:100%;" onclick="deleteSelected()">刪除此家具</button>
         </div>
     </div>
 
     <div class="accordion-header" id="zoneHeader" onclick="toggleAccordion('zoneContent')">
         <span>底色區域管理</span>
-        <span class="arrow">▼</span>
+        <span>▼</span>
     </div>
     <div id="zoneContent" class="accordion-content">
         <div class="guide-box">
-            <b>📐 使用規則：</b><br>
-            • 原點 (0,0) 位於畫布<b>左下角</b>。<br>
-            • <b>X / Y</b>：區域左下角的座標位置。<br>
-            • <b>W / H</b>：區域向右與向上的尺寸。<br>
-            • <b>圖層</b>：區域永遠顯示在家具下方。
+            <b>📐 區域規則：</b><br>
+            • 原點 (0,0) 為<b>左下角</b>。<br>
+            • X, Y：區域左下角之座標。<br>
+            • 區域顯示於家具的最底層。
         </div>
         <div id="zoneList"></div>
     </div>
@@ -122,19 +103,18 @@
 <script>
     const canvas = document.getElementById('roomCanvas');
     const ctx = canvas.getContext('2d');
-    const FIXED_W = 950, FIXED_H = 740;
+    const CW = 950, CH = 740;
     const PRESET_COLORS = ["#aec6cf", "#ffb347", "#77dd77", "#fdfd96", "#cfcfc4", "#ff6961", "#836953", "#c23b22", "#03c03c", "#5d8aa8", "#222222", "#ffffff"];
 
     let furnitures = [], zones = [], selectedIndex = -1, isDragging = false, offset = { x: 0, y: 0 };
 
     initColorGrid();
-    addZone("預設地板", 0, 0, 950, 740, "#f9f9f9");
-    addFurniture("大沙發", 50, 50, 200, 90);
+    addZone("預設空間", 0, 0, CW, CH, "#f8f9fa");
+    addFurniture("展示區", 475, 370, 150, 150);
 
     function toggleAccordion(id) {
-        const content = document.getElementById(id);
-        content.classList.toggle('active');
-        content.previousElementSibling.classList.toggle('active');
+        document.getElementById(id).classList.toggle('active');
+        document.getElementById(id).previousElementSibling.classList.toggle('active');
     }
 
     function initColorGrid() {
@@ -148,113 +128,68 @@
         });
     }
 
-    function addFurniture(name="新家具", x=100, y=100, w=100, h=80) {
-        furnitures.push({ x, y, w, h, rotation: 0, name, color: PRESET_COLORS[0] });
+    function addFurniture(name="新家具", x=100, y=100, w=100, h=100) {
+        furnitures.push({ x: x-w/2, y: y-h/2, w, h, rotation: 0, name, color: PRESET_COLORS[0] });
         selectedIndex = furnitures.length - 1;
         updateUI();
     }
 
-    function updateFurnitureList() {
-        const listContainer = document.getElementById('furnitureListContainer');
-        const countSpan = document.getElementById('furnitureCount');
-        listContainer.innerHTML = '';
-        countSpan.innerText = `(${furnitures.length})`;
-
-        furnitures.forEach((f, idx) => {
-            const li = document.createElement('div');
-            li.className = `item-list-li ${idx === selectedIndex ? 'selected' : ''}`;
-            li.innerHTML = `<span>${idx + 1}. ${f.name}</span><small style="color:#888">${f.w}x${f.h}</small>`;
-            li.onclick = () => { selectedIndex = idx; updateUI(); };
-            listContainer.appendChild(li);
-        });
+    function addZone(name="新底色區", x=0, y=0, w=300, h=300, color="#f0f0f0") {
+        zones.push({ name, x, y, w, h, color });
+        renderZoneList();
+        document.getElementById('zoneContent').classList.add('active');
+        document.getElementById('zoneHeader').classList.add('active');
     }
 
     function draw() {
-        ctx.clearRect(0, 0, FIXED_W, FIXED_H);
-        zones.forEach(z => { ctx.fillStyle = z.color; ctx.fillRect(z.x, FIXED_H - (z.y + z.h), z.w, z.h); });
+        ctx.clearRect(0, 0, CW, CH);
+        
+        // 1. 繪製底色區域
+        zones.forEach(z => {
+            ctx.fillStyle = z.color;
+            ctx.fillRect(z.x, CH - (z.y + z.h), z.w, z.h);
+        });
+
+        // 2. 繪製比例網格 (每 100cm 一格)
         ctx.strokeStyle = '#e0e0e0';
-        for (let i = 0; i <= FIXED_W; i += 50) {
-            ctx.beginPath(); ctx.lineWidth = (i % 100 === 0) ? 1.5 : 0.5;
-            ctx.moveTo(i, 0); ctx.lineTo(i, FIXED_H); ctx.stroke();
-            if (i % 100 === 0) { ctx.fillStyle = '#999'; ctx.font = '12px Arial'; ctx.fillText(i, i+2, FIXED_H-5); }
+        for (let i = 0; i <= CW; i += 50) {
+            ctx.beginPath(); ctx.lineWidth = (i%100===0)?1.5:0.5; ctx.moveTo(i, 0); ctx.lineTo(i, CH); ctx.stroke();
+            if (i%100===0) { ctx.fillStyle = '#aaa'; ctx.font='12px Arial'; ctx.fillText(i, i+2, CH-5); }
         }
-        for (let j = 0; j <= FIXED_H; j += 50) {
-            ctx.beginPath(); ctx.lineWidth = (j % 100 === 0) ? 1.5 : 0.5;
-            ctx.moveTo(0, FIXED_H-j); ctx.lineTo(FIXED_W, FIXED_H-j); ctx.stroke();
-            if (j % 100 === 0) { ctx.fillStyle = '#999'; ctx.fillText(j, 5, FIXED_H-j-2); }
+        for (let j = 0; j <= CH; j += 50) {
+            ctx.beginPath(); ctx.lineWidth = (j%100===0)?1.5:0.5; ctx.moveTo(0, CH-j); ctx.lineTo(CW, CH-j); ctx.stroke();
+            if (j%100===0) { ctx.fillStyle = '#aaa'; ctx.fillText(j, 5, CH-j-2); }
         }
+
+        // 3. 繪製家具
         furnitures.forEach((f, idx) => {
             ctx.save();
-            ctx.translate(f.x + f.w/2, FIXED_H - (f.y + f.h/2));
+            ctx.translate(f.x + f.w/2, CH - (f.y + f.h/2));
             ctx.rotate(-f.rotation * Math.PI / 180);
             ctx.fillStyle = f.color;
             ctx.strokeStyle = (idx === selectedIndex) ? '#4A90E2' : '#333';
             ctx.lineWidth = (idx === selectedIndex) ? 4 : 2;
             ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
             ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
-            ctx.fillStyle = '#333'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(f.name, 0, 0);
+            ctx.fillStyle = '#333'; ctx.textAlign = 'center'; ctx.textBaseline='middle'; ctx.fillText(f.name, 0, 0);
             ctx.restore();
         });
         requestAnimationFrame(draw);
     }
 
-    function updateUI() {
-        const panel = document.getElementById('editPanel');
-        if (selectedIndex !== -1) {
-            panel.style.display = 'block';
-            const f = furnitures[selectedIndex];
-            document.getElementById('editName').value = f.name;
-            document.getElementById('editW').value = f.w;
-            document.getElementById('editH').value = f.h;
-            Array.from(document.querySelectorAll('#colorGrid .color-dot')).forEach(dot => {
-                dot.classList.toggle('active', dot.style.backgroundColor === f.color);
-            });
-        } else { panel.style.display = 'none'; }
-        updateFurnitureList();
-    }
-
-    function updateSelected() {
-        if (selectedIndex !== -1) {
-            const f = furnitures[selectedIndex];
-            f.name = document.getElementById('editName').value;
-            f.w = parseFloat(document.getElementById('editW').value) || 1;
-            f.h = parseFloat(document.getElementById('editH').value) || 1;
-            updateFurnitureList();
-        }
-    }
-
-    // 座標與事件處理
+    // 縮放座標處理
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: cx - rect.left, y: FIXED_H - (cy - rect.top) };
+        const displayScale = rect.width / CW;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) / displayScale,
+            y: CH - ((clientY - rect.top) / displayScale)
+        };
     }
-    canvas.addEventListener('mousedown', e => {
-        const c = getCoords(e);
-        let found = false;
-        for (let i = furnitures.length - 1; i >= 0; i--) {
-            const f = furnitures[i];
-            if (c.x >= f.x && c.x <= f.x + f.w && c.y >= f.y && c.y <= f.y + f.h) {
-                selectedIndex = i; isDragging = true;
-                offset.x = c.x - f.x; offset.y = c.y - f.y;
-                found = true; break;
-            }
-        }
-        if (!found) selectedIndex = -1;
-        updateUI();
-    });
-    window.addEventListener('mousemove', e => {
-        if (isDragging && selectedIndex !== -1) {
-            const c = getCoords(e);
-            furnitures[selectedIndex].x = c.x - offset.x;
-            furnitures[selectedIndex].y = c.y - offset.y;
-        }
-    });
-    window.addEventListener('mouseup', () => isDragging = false);
 
-    canvas.addEventListener('touchstart', e => {
+    function handleStart(e) {
         const c = getCoords(e);
         let found = false;
         for (let i = furnitures.length - 1; i >= 0; i--) {
@@ -268,27 +203,57 @@
         if (!found) selectedIndex = -1;
         updateUI();
         if(found) e.preventDefault();
-    }, {passive: false});
-    window.addEventListener('touchmove', e => {
-        if (isDragging) {
-            const c = getCoords(e);
-            furnitures[selectedIndex].x = c.x - offset.x;
-            furnitures[selectedIndex].y = c.y - offset.y;
-            e.preventDefault();
-        }
-    }, {passive: false});
-    window.addEventListener('touchend', () => isDragging = false);
-
-    function rotateStep(deg) { if (selectedIndex !== -1) furnitures[selectedIndex].rotation += deg; }
-    function deleteSelected() { if (selectedIndex !== -1) { furnitures.splice(selectedIndex, 1); selectedIndex = -1; updateUI(); } }
-
-    function addZone(name="底色區", x=0, y=0, w=300, h=300, color="#f0f0f0") {
-        zones.push({ name, x, y, w, h, color });
-        renderZoneList();
-        document.getElementById('zoneContent').classList.add('active');
-        document.getElementById('zoneHeader').classList.add('active');
     }
 
+    function handleMove(e) {
+        if (!isDragging || selectedIndex === -1) return;
+        const c = getCoords(e);
+        furnitures[selectedIndex].x = c.x - offset.x;
+        furnitures[selectedIndex].y = c.y - offset.y;
+        e.preventDefault();
+    }
+
+    canvas.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', () => isDragging = false);
+
+    function updateUI() {
+        const panel = document.getElementById('editPanel');
+        if (selectedIndex !== -1) {
+            panel.style.display = 'block';
+            const f = furnitures[selectedIndex];
+            document.getElementById('editName').value = f.name;
+            document.getElementById('editW').value = f.w;
+            document.getElementById('editH').value = f.h;
+        } else { panel.style.display = 'none'; }
+        updateList();
+    }
+
+    function updateList() {
+        const list = document.getElementById('furnitureListContainer');
+        document.getElementById('furnitureCount').innerText = `(${furnitures.length})`;
+        list.innerHTML = '';
+        furnitures.forEach((f, idx) => {
+            const li = document.createElement('div');
+            li.className = `item-list-li ${idx === selectedIndex ? 'selected' : ''}`;
+            li.innerHTML = `<span>${f.name}</span><small>${f.w}x${f.h} cm</small>`;
+            li.onclick = () => { selectedIndex = idx; updateUI(); };
+            list.appendChild(li);
+        });
+    }
+
+    function updateSelected() {
+        if (selectedIndex !== -1) {
+            const f = furnitures[selectedIndex];
+            f.name = document.getElementById('editName').value;
+            f.w = parseFloat(document.getElementById('editW').value) || 1;
+            f.h = parseFloat(document.getElementById('editH').value) || 1;
+        }
+    }
+    
     function renderZoneList() {
         const container = document.getElementById('zoneList');
         container.innerHTML = '';
@@ -298,21 +263,23 @@
             div.innerHTML = `
                 <div style="display:flex; gap:5px; margin-bottom:5px;">
                     <input type="text" value="${z.name}" oninput="zones[${idx}].name=this.value" style="flex:1; font-size:12px; margin:0">
-                    <button class="btn-danger" onclick="zones.splice(${idx},1);renderZoneList()" style="width:30px; margin:0; padding:5px">✕</button>
+                    <button onclick="zones.splice(${idx},1);renderZoneList()" style="width:30px; background:#e74c3c; border:none; color:white; border-radius:3px;">✕</button>
                 </div>
-                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:3px;">
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:2px;">
                     <input type="number" value="${z.x}" oninput="zones[${idx}].x=parseFloat(this.value)||0">
                     <input type="number" value="${z.y}" oninput="zones[${idx}].y=parseFloat(this.value)||0">
                     <input type="number" value="${z.w}" oninput="zones[${idx}].w=parseFloat(this.value)||0">
                     <input type="number" value="${z.h}" oninput="zones[${idx}].h=parseFloat(this.value)||0">
                 </div>
                 <div class="color-grid" style="grid-template-columns: repeat(12, 1fr); margin-top:5px;">
-                    ${PRESET_COLORS.map(c => `<div style="background:${c}; height:12px; cursor:pointer;" onclick="zones[${idx}].color='${c}'"></div>`).join('')}
-                </div>
-            `;
+                    ${PRESET_COLORS.map(c => `<div style="background:${c}; height:10px; cursor:pointer;" onclick="zones[${idx}].color='${c}'"></div>`).join('')}
+                </div>`;
             container.appendChild(div);
         });
     }
+
+    function rotateStep(deg) { if (selectedIndex !== -1) furnitures[selectedIndex].rotation += deg; }
+    function deleteSelected() { if (selectedIndex !== -1) { furnitures.splice(selectedIndex, 1); selectedIndex = -1; updateUI(); } }
 
     draw();
 </script>
