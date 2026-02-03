@@ -3,79 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>空間設計器 - iPhone 優化版</title>
+    <title>空間設計器 - 雙指縮放版</title>
     <style>
         :root { --primary: #4A90E2; --bg: #1a1a1a; --accent: #8e44ad; }
-        
-        /* 使用 dvh 確保在 Safari 導覽列出現時高度依然正確 */
-        body { 
-            font-family: "Microsoft JhengHei", sans-serif; 
-            display: flex; 
-            flex-direction: row; 
-            margin: 0; 
-            background-color: var(--bg); 
-            height: 100dvh; 
-            overflow: hidden; 
-        }
+        body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100dvh; overflow: hidden; }
 
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100% !important; height: 45dvh; order: 2; border-top: 1px solid #444; }
-            #canvas-container { 
-                height: 55dvh; 
-                order: 1; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                padding: 10px; 
-                box-sizing: border-box;
-                overflow-y: auto !important; /* 允許垂直捲動以看到被遮擋的部分 */
-            }
+            #sidebar { width: 100% !important; height: 42dvh; order: 2; border-top: 1px solid #444; }
+            #canvas-container { height: 58dvh; order: 1; }
         }
 
-        #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; box-sizing: border-box; }
+        #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; z-index: 10; }
         
-        /* 核心優化：增加底部間距防止被 iPhone 選單遮擋 */
+        /* 畫布容器：移除置中，讓位置靠頂 */
         #canvas-container { 
             flex-grow: 1; 
             background: #333; 
-            overflow: auto; 
+            overflow: hidden; 
             position: relative; 
-            padding-bottom: 80px; 
-            -webkit-overflow-scrolling: touch;
+            touch-action: none; /* 禁用瀏覽器預設手勢，改由 JS 控制 */
         }
 
         canvas { 
             background-color: white; 
-            max-width: 100%; 
-            max-height: 100%; 
-            width: auto; height: auto;
-            object-fit: contain; 
             display: block; 
-            touch-action: none; 
+            transform-origin: 0 0; /* 縮放原點設為左上角 */
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
         }
 
-        .accordion-header { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        .accordion-header { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; margin-top: 8px; font-weight: bold; font-size: 14px; }
         .accordion-content { display: none; padding: 10px; border: 1px solid #ddd; border-top: none; background: #fff; }
         .accordion-content.active { display: block; }
         .item-list-li { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; }
         .item-list-li.selected { background: #e3f2fd; border-left: 4px solid var(--primary); }
-        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 8px; }
-        .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 5px; }
+        .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
         .color-dot { width: 100%; aspect-ratio: 1; border-radius: 3px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
         button { width: 100%; padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
-        .btn-zone { background: var(--accent); }
-        .btn-danger { background: #e74c3c; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h3 style="margin:0 0 10px 0;">空間設計 (iPhone優化)</h3>
+    <h3 style="margin:0 0 10px 0;">空間設計 (950x740)</h3>
     <button onclick="addFurniture()">＋ 新增家具</button>
-    <button class="btn-zone" onclick="addZone()">＋ 新增底色區域</button>
+    <button style="background:var(--accent)" onclick="addZone()">＋ 新增區域</button>
 
     <div class="accordion-header active" onclick="toggleAccordion('listContent')">
         <span>家具清單 <small id="furnitureCount">(0)</small></span>
@@ -101,7 +74,7 @@
                 <button style="background:#607d8b; flex:1;" onclick="rotateStep(-30)">↺ -30°</button>
                 <button style="background:#607d8b; flex:1;" onclick="rotateStep(30)">+30° ↻</button>
             </div>
-            <button class="btn-danger" style="width:100%; margin-top:10px;" onclick="deleteSelected()">刪除家具</button>
+            <button style="background:#e74c3c" onclick="deleteSelected()">刪除家具</button>
         </div>
     </div>
 
@@ -120,11 +93,21 @@
 
 <script>
     const canvas = document.getElementById('roomCanvas');
+    const container = document.getElementById('canvas-container');
     const ctx = canvas.getContext('2d');
     const CW = 950, CH = 740;
     const PRESET_COLORS = ["#ffb347", "#222222", "#aec6cf", "#77dd77", "#fdfd96", "#cfcfc4", "#ff6961", "#836953", "#c23b22", "#03c03c", "#5d8aa8", "#ffffff"];
 
-    let furnitures = [], zones = [], selectedIndex = -1, isDragging = false, offset = { x: 0, y: 0 };
+    // 視圖狀態：縮放與位移
+    let view = { x: 10, y: 10, scale: 0.4 }; 
+    let furnitures = [], zones = [], selectedIndex = -1;
+    
+    // 觸控與手勢狀態
+    let isDragging = false;
+    let isPanning = false;
+    let lastTouch = { x: 0, y: 0 };
+    let initialPinchDist = 0;
+    let initialScale = 1;
 
     initColorGrid();
     zones.push({ name: "走道", x: 0, y: 0, w: 150, h: 740, color: "#ffb347" });
@@ -132,9 +115,17 @@
     zones.push({ name: "柱子2", x: 430, y: 0, w: 40, h: 40, color: "#222222" });
     renderZoneList();
 
-    function toggleAccordion(id) {
-        document.getElementById(id).classList.toggle('active');
+    // 初始化自動適應螢幕寬度
+    window.onload = () => {
+        view.scale = (container.clientWidth - 20) / CW;
+        applyTransform();
+    };
+
+    function applyTransform() {
+        canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
     }
+
+    function toggleAccordion(id) { document.getElementById(id).classList.toggle('active'); }
 
     function initColorGrid() {
         const grid = document.getElementById('colorGrid');
@@ -142,30 +133,15 @@
             const dot = document.createElement('div');
             dot.className = 'color-dot';
             dot.style.backgroundColor = color;
-            dot.onclick = () => { if (selectedIndex !== -1) { furnitures[selectedIndex].color = color; } };
+            dot.onclick = () => { if (selectedIndex !== -1) furnitures[selectedIndex].color = color; };
             grid.appendChild(dot);
         });
     }
 
-    function addFurniture(name="新家具", x=200, y=200, w=100, h=100) {
-        furnitures.push({ x: x-w/2, y: y-h/2, w, h, rotation: 0, name, color: "#aec6cf" });
+    function addFurniture() {
+        furnitures.push({ x: 400, y: 300, w: 100, h: 100, rotation: 0, name: "新家具", color: "#aec6cf" });
         selectedIndex = furnitures.length - 1;
         updateUI();
-    }
-
-    function addZone() {
-        zones.push({ name: "新區域", x: 200, y: 200, w: 100, h: 100, color: "#eeeeee" });
-        renderZoneList();
-    }
-
-    function getContrastYIQ(hexcolor){
-        hexcolor = hexcolor.replace("#", "");
-        if(hexcolor.length === 3) hexcolor = hexcolor.split('').map(s => s+s).join('');
-        var r = parseInt(hexcolor.substr(0,2),16);
-        var g = parseInt(hexcolor.substr(2,2),16);
-        var b = parseInt(hexcolor.substr(4,2),16);
-        var yiq = ((r*299)+(g*587)+(b*114))/1000;
-        return (yiq >= 128) ? '#000000' : '#ffffff';
     }
 
     function draw() {
@@ -175,24 +151,15 @@
             ctx.fillRect(z.x, CH - (z.y + z.h), z.w, z.h);
         });
         for (let i = 0; i <= CW; i += 50) {
-            ctx.beginPath(); 
-            ctx.strokeStyle = (i % 100 === 0) ? '#666' : '#999';
-            ctx.lineWidth = (i % 100 === 0) ? 1.2 : 0.6;
+            ctx.beginPath(); ctx.strokeStyle = (i % 100 === 0) ? '#666' : '#999';
+            ctx.lineWidth = (i % 100 === 0) ? 1.5 : 0.8;
             ctx.moveTo(i, 0); ctx.lineTo(i, CH); ctx.stroke();
-            if (i % 100 === 0) {
-                ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial';
-                ctx.fillText(i, i + 2, CH - 5);
-            }
         }
         for (let j = 0; j <= CH; j += 50) {
-            ctx.beginPath();
-            ctx.strokeStyle = (j % 100 === 0) ? '#666' : '#999';
-            ctx.lineWidth = (j % 100 === 0) ? 1.2 : 0.6;
+            ctx.beginPath(); ctx.strokeStyle = (j % 100 === 0) ? '#666' : '#999';
+            ctx.lineWidth = (j % 100 === 0) ? 1.5 : 0.8;
             ctx.moveTo(0, CH - j); ctx.lineTo(CW, CH - j); ctx.stroke();
-            if (j % 100 === 0 && j !== 0) {
-                ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial';
-                ctx.fillText(j, 5, CH - j - 2);
-            }
+            if (j % 100 === 0 && j !== 0) { ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial'; ctx.fillText(j, 5, CH - j - 2); }
         }
         furnitures.forEach((f, idx) => {
             ctx.save();
@@ -203,58 +170,71 @@
             ctx.lineWidth = (idx === selectedIndex) ? 4 : 2;
             ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
             ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
-            ctx.fillStyle = getContrastYIQ(f.color);
-            ctx.font = 'bold 24px "Microsoft JhengHei"';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.shadowColor = "rgba(0,0,0,0.3)";
-            ctx.shadowBlur = 4;
+            ctx.fillStyle = (f.color === "#222222") ? "white" : "#333";
+            ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(f.name, 0, 0);
             ctx.restore();
         });
         requestAnimationFrame(draw);
     }
 
-    function getCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const displayScale = rect.width / CW;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    // 坐標轉換：從螢幕點擊轉回畫布原始座標
+    function screenToCanvas(sx, sy) {
+        const rect = container.getBoundingClientRect();
         return {
-            x: (clientX - rect.left) / displayScale,
-            y: CH - ((clientY - rect.top) / displayScale)
+            x: (sx - rect.left - view.x) / view.scale,
+            y: CH - ((sy - rect.top - view.y) / view.scale)
         };
     }
 
-    function handleStart(e) {
-        const c = getCoords(e);
-        let found = false;
-        for (let i = furnitures.length - 1; i >= 0; i--) {
-            const f = furnitures[i];
-            if (c.x >= f.x && c.x <= f.x + f.w && c.y >= f.y && c.y <= f.y + f.h) {
-                selectedIndex = i; isDragging = true;
-                offset.x = c.x - f.x; offset.y = c.y - f.y;
-                found = true; break;
+    container.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const c = screenToCanvas(touch.clientX, touch.clientY);
+            let found = false;
+            for (let i = furnitures.length - 1; i >= 0; i--) {
+                const f = furnitures[i];
+                if (c.x >= f.x && c.x <= f.x + f.w && c.y >= f.y && c.y <= f.y + f.h) {
+                    selectedIndex = i; isDragging = true;
+                    lastTouch = { x: c.x - f.x, y: c.y - f.y };
+                    found = true; break;
+                }
             }
+            if (!found) { 
+                selectedIndex = -1; isPanning = true; 
+                lastTouch = { x: touch.clientX, y: touch.clientY };
+            }
+        } else if (e.touches.length === 2) {
+            isDragging = false; isPanning = false;
+            initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            initialScale = view.scale;
         }
-        if (!found) selectedIndex = -1;
         updateUI();
-        if(found) e.preventDefault();
-    }
+    }, { passive: false });
 
-    function handleMove(e) {
-        if (!isDragging || selectedIndex === -1) return;
-        const c = getCoords(e);
-        furnitures[selectedIndex].x = c.x - offset.x;
-        furnitures[selectedIndex].y = c.y - offset.y;
+    container.addEventListener('touchmove', e => {
         e.preventDefault();
-    }
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            if (isDragging && selectedIndex !== -1) {
+                const c = screenToCanvas(touch.clientX, touch.clientY);
+                furnitures[selectedIndex].x = c.x - lastTouch.x;
+                furnitures[selectedIndex].y = c.y - lastTouch.y;
+            } else if (isPanning) {
+                view.x += (touch.clientX - lastTouch.x);
+                view.y += (touch.clientY - lastTouch.y);
+                lastTouch = { x: touch.clientX, y: touch.clientY };
+                applyTransform();
+            }
+        } else if (e.touches.length === 2) {
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            view.scale = initialScale * (dist / initialPinchDist);
+            if (view.scale < 0.1) view.scale = 0.1;
+            applyTransform();
+        }
+    }, { passive: false });
 
-    canvas.addEventListener('mousedown', handleStart);
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', () => isDragging = false);
-    canvas.addEventListener('touchstart', handleStart, { passive: false });
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', () => isDragging = false);
+    container.addEventListener('touchend', () => { isDragging = false; isPanning = false; });
 
     function updateUI() {
         const panel = document.getElementById('editPanel');
@@ -315,6 +295,7 @@
     }
     function rotateStep(deg) { if (selectedIndex !== -1) furnitures[selectedIndex].rotation += deg; }
     function deleteSelected() { if (selectedIndex !== -1) { furnitures.splice(selectedIndex, 1); selectedIndex = -1; updateUI(); } }
+    function addZone() { zones.push({ name: "新區域", x: 200, y: 200, w: 100, h: 100, color: "#eeeeee" }); renderZoneList(); }
 
     draw();
 </script>
