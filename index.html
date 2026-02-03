@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>空間設計器 - 雙指縮放版</title>
+    <title>空間設計器 - 螢幕完美適應版</title>
     <style>
         :root { --primary: #4A90E2; --bg: #1a1a1a; --accent: #8e44ad; }
         body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100dvh; overflow: hidden; }
@@ -11,27 +11,36 @@
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #sidebar { width: 100% !important; height: 42dvh; order: 2; border-top: 1px solid #444; }
-            #canvas-container { height: 58dvh; order: 1; }
+            #canvas-container { 
+                height: 58dvh; 
+                order: 1; 
+                display: flex; 
+                align-items: center; /* 垂直居中 */
+                justify-content: center; /* 水平居中，防止超出右邊 */
+                padding: 0; 
+                margin: 0;
+            }
         }
 
-        #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; z-index: 10; }
+        #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; z-index: 10; position: relative; }
         
-        /* 畫布容器：移除置中，讓位置靠頂 */
         #canvas-container { 
             flex-grow: 1; 
             background: #333; 
             overflow: hidden; 
             position: relative; 
-            touch-action: none; /* 禁用瀏覽器預設手勢，改由 JS 控制 */
+            touch-action: none;
+            box-sizing: border-box;
         }
 
         canvas { 
             background-color: white; 
             display: block; 
-            transform-origin: 0 0; /* 縮放原點設為左上角 */
+            transform-origin: center center; /* 改為中心縮放，視覺更對稱 */
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
 
+        /* 介面細節優化 */
         .accordion-header { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px; border-radius: 5px; cursor: pointer; border: 1px solid #ddd; margin-top: 8px; font-weight: bold; font-size: 14px; }
         .accordion-content { display: none; padding: 10px; border: 1px solid #ddd; border-top: none; background: #fff; }
         .accordion-content.active { display: block; }
@@ -40,7 +49,7 @@
         input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-bottom: 5px; }
         .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
         .color-dot { width: 100%; aspect-ratio: 1; border-radius: 3px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
-        button { width: 100%; padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
+        button { width: 100%; padding: 12px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -98,16 +107,10 @@
     const CW = 950, CH = 740;
     const PRESET_COLORS = ["#ffb347", "#222222", "#aec6cf", "#77dd77", "#fdfd96", "#cfcfc4", "#ff6961", "#836953", "#c23b22", "#03c03c", "#5d8aa8", "#ffffff"];
 
-    // 視圖狀態：縮放與位移
-    let view = { x: 10, y: 10, scale: 0.4 }; 
+    let view = { x: 0, y: 0, scale: 1 }; 
     let furnitures = [], zones = [], selectedIndex = -1;
-    
-    // 觸控與手勢狀態
-    let isDragging = false;
-    let isPanning = false;
-    let lastTouch = { x: 0, y: 0 };
-    let initialPinchDist = 0;
-    let initialScale = 1;
+    let isDragging = false, isPanning = false, lastTouch = { x: 0, y: 0 };
+    let initialPinchDist = 0, initialScale = 1;
 
     initColorGrid();
     zones.push({ name: "走道", x: 0, y: 0, w: 150, h: 740, color: "#ffb347" });
@@ -115,14 +118,22 @@
     zones.push({ name: "柱子2", x: 430, y: 0, w: 40, h: 40, color: "#222222" });
     renderZoneList();
 
-    // 初始化自動適應螢幕寬度
-    window.onload = () => {
-        view.scale = (container.clientWidth - 20) / CW;
+    // 核心修正：自動計算最完美的滿版比例
+    function autoFit() {
+        const padding = 20;
+        const availableW = container.clientWidth - padding;
+        const availableH = container.clientHeight - padding;
+        view.scale = Math.min(availableW / CW, availableH / CH);
+        view.x = 0; view.y = 0; // 重置位移
         applyTransform();
-    };
+    }
+
+    window.onload = autoFit;
+    window.onresize = autoFit;
 
     function applyTransform() {
-        canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+        // 使用 translate3d 提高渲染性能，並確保位移與縮放同步
+        canvas.style.transform = `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`;
     }
 
     function toggleAccordion(id) { document.getElementById(id).classList.toggle('active'); }
@@ -154,6 +165,7 @@
             ctx.beginPath(); ctx.strokeStyle = (i % 100 === 0) ? '#666' : '#999';
             ctx.lineWidth = (i % 100 === 0) ? 1.5 : 0.8;
             ctx.moveTo(i, 0); ctx.lineTo(i, CH); ctx.stroke();
+            if (i % 100 === 0) { ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial'; ctx.fillText(i, i + 2, CH - 5); }
         }
         for (let j = 0; j <= CH; j += 50) {
             ctx.beginPath(); ctx.strokeStyle = (j % 100 === 0) ? '#666' : '#999';
@@ -178,12 +190,12 @@
         requestAnimationFrame(draw);
     }
 
-    // 坐標轉換：從螢幕點擊轉回畫布原始座標
+    // 關鍵修正：計算縮放與位移後的觸點座標
     function screenToCanvas(sx, sy) {
-        const rect = container.getBoundingClientRect();
+        const rect = canvas.getBoundingClientRect();
         return {
-            x: (sx - rect.left - view.x) / view.scale,
-            y: CH - ((sy - rect.top - view.y) / view.scale)
+            x: (sx - rect.left) / (rect.width / CW),
+            y: CH - ((sy - rect.top) / (rect.height / CH))
         };
     }
 
@@ -229,7 +241,6 @@
         } else if (e.touches.length === 2) {
             const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             view.scale = initialScale * (dist / initialPinchDist);
-            if (view.scale < 0.1) view.scale = 0.1;
             applyTransform();
         }
     }, { passive: false });
