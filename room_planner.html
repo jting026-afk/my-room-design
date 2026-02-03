@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>精確比例房間設計器 Pro</title>
+    <style>
+        :root { --primary: #4A90E2; --bg: #f0f2f5; }
+        body { font-family: "Microsoft JhengHei", sans-serif; display: flex; flex-direction: row; margin: 0; background-color: var(--bg); height: 100vh; overflow: hidden; }
+        
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100% !important; height: 35vh; order: 2; border-top: 2px solid #ddd; }
+            #canvas-container { height: 65vh; order: 1; padding: 10px; }
+        }
+
+        #sidebar { width: 320px; padding: 15px; background: white; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; box-sizing: border-box; }
+        #canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #444; overflow: auto; padding: 40px; }
+        
+        canvas { background-color: white; box-shadow: 0 0 25px rgba(0,0,0,0.4); touch-action: none; display: block; }
+
+        .control-panel { border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 12px; background: #fafafa; }
+        .input-group { margin-bottom: 8px; }
+        label { display: block; font-size: 0.8em; font-weight: bold; margin-bottom: 3px; color: #555; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        
+        button { width: 100%; padding: 12px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 5px; }
+        .rotate-group { display: flex; gap: 5px; }
+        .btn-secondary { background: #607d8b; flex: 1; }
+        .btn-danger { background: #e74c3c; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="control-panel" style="background: #eef6ff;">
+        <label>房間實際尺寸 (cm):</label>
+        <div style="display: flex; gap: 5px;">
+            <input type="number" id="roomW" value="600" oninput="resizeRoom()">
+            <input type="number" id="roomH" value="500" oninput="resizeRoom()">
+        </div>
+    </div>
+
+    <button onclick="addFurniture()">＋ 新增家具</button>
+
+    <div id="editPanel" style="display:none;">
+        <div class="control-panel">
+            <label>家具屬性:</label>
+            <input type="text" id="editName" oninput="updateSelected()" placeholder="名稱" style="margin-bottom:5px;">
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="editW" oninput="updateSelected()" placeholder="長 W">
+                <input type="number" id="editH" oninput="updateSelected()" placeholder="寬 H">
+            </div>
+            <label style="margin-top:10px;">快速旋轉:</label>
+            <div class="rotate-group">
+                <button class="btn-secondary" onclick="rotateStep(-30)">↺ -30°</button>
+                <button class="btn-secondary" onclick="rotateStep(30)">+30° ↻</button>
+            </div>
+            <button class="btn-danger" onclick="deleteSelected()">刪除</button>
+        </div>
+    </div>
+</div>
+
+<div id="canvas-container">
+    <canvas id="roomCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('roomCanvas');
+    const ctx = canvas.getContext('2d');
+    let furnitures = [];
+    let selectedIndex = -1;
+    let isDragging = false;
+    let offset = { x: 0, y: 0 };
+
+    resizeRoom();
+
+    function resizeRoom() {
+        canvas.width = parseFloat(document.getElementById('roomW').value) || 300;
+        canvas.height = parseFloat(document.getElementById('roomH').value) || 300;
+    }
+
+    function addFurniture() {
+        furnitures.push({
+            x: 50, y: 50, w: 120, h: 60, rotation: 0,
+            name: "新家具",
+            color: `hsl(${Math.random() * 360}, 60%, 75%)`
+        });
+        selectedIndex = furnitures.length - 1;
+        updateUI();
+    }
+
+    function draw() {
+        const H = canvas.height;
+        const W = canvas.width;
+        ctx.clearRect(0, 0, W, H);
+
+        // --- 繪製精確比例尺網格 ---
+        for (let i = 0; i <= W; i += 10) {
+            ctx.beginPath();
+            ctx.lineWidth = (i % 50 === 0) ? 1.2 : 0.5;
+            ctx.strokeStyle = (i % 50 === 0) ? '#bbb' : '#f0f0f0';
+            ctx.moveTo(i, 0); ctx.lineTo(i, H);
+            ctx.stroke();
+            if (i % 100 === 0 && i !== 0) {
+                ctx.fillStyle = '#888'; ctx.font = '10px Arial';
+                ctx.fillText(i + 'cm', i + 2, H - 5); // X軸數字
+            }
+        }
+        for (let j = 0; j <= H; j += 10) {
+            ctx.beginPath();
+            let rY = H - j;
+            ctx.lineWidth = (j % 50 === 0) ? 1.2 : 0.5;
+            ctx.strokeStyle = (j % 50 === 0) ? '#bbb' : '#f0f0f0';
+            ctx.moveTo(0, rY); ctx.lineTo(W, rY);
+            ctx.stroke();
+            if (j % 100 === 0 && j !== 0) {
+                ctx.fillStyle = '#888';
+                ctx.fillText(j + 'cm', 5, rY - 2); // Y軸數字
+            }
+        }
+
+        // --- 繪製家具 ---
+        furnitures.forEach((f, idx) => {
+            ctx.save();
+            // 座標轉換：左下角 (f.x, f.y)
+            const centerX = f.x + f.w / 2;
+            const centerY = H - (f.y + f.h / 2);
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-f.rotation * Math.PI / 180);
+
+            ctx.fillStyle = f.color;
+            ctx.strokeStyle = (idx === selectedIndex) ? '#4A90E2' : '#333';
+            ctx.lineWidth = (idx === selectedIndex) ? 4 : 1.5;
+            
+            ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
+            ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
+
+            // 名稱文字標註
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 13px "Microsoft JhengHei"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(f.name || "", 0, 0);
+            
+            ctx.restore();
+        });
+        requestAnimationFrame(draw);
+    }
+
+    function getCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: canvas.height - (clientY - rect.top)
+        };
+    }
+
+    function handleStart(e) {
+        const coords = getCoords(e);
+        let found = false;
+        for (let i = furnitures.length - 1; i >= 0; i--) {
+            const f = furnitures[i];
+            if (coords.x >= f.x && coords.x <= f.x + f.w && coords.y >= f.y && coords.y <= f.y + f.h) {
+                selectedIndex = i; isDragging = true;
+                offset.x = coords.x - f.x; offset.y = coords.y - f.y;
+                found = true; break;
+            }
+        }
+        if (!found) selectedIndex = -1;
+        updateUI();
+        if(e.cancelable) e.preventDefault();
+    }
+
+    function handleMove(e) {
+        if (!isDragging || selectedIndex === -1) return;
+        const coords = getCoords(e);
+        furnitures[selectedIndex].x = coords.x - offset.x;
+        furnitures[selectedIndex].y = coords.y - offset.y;
+        if(e.cancelable) e.preventDefault();
+    }
+
+    canvas.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    canvas.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', () => isDragging = false);
+
+    function updateUI() {
+        const panel = document.getElementById('editPanel');
+        if (selectedIndex !== -1) {
+            const f = furnitures[selectedIndex];
+            panel.style.display = 'block';
+            document.getElementById('editName').value = f.name;
+            document.getElementById('editW').value = f.w;
+            document.getElementById('editH').value = f.h;
+        } else { panel.style.display = 'none'; }
+    }
+
+    function updateSelected() {
+        if (selectedIndex !== -1) {
+            const f = furnitures[selectedIndex];
+            f.name = document.getElementById('editName').value;
+            f.w = parseFloat(document.getElementById('editW').value) || 1;
+            f.h = parseFloat(document.getElementById('editH').value) || 1;
+        }
+    }
+
+    function rotateStep(deg) { if (selectedIndex !== -1) furnitures[selectedIndex].rotation += deg; }
+    function deleteSelected() { if (selectedIndex !== -1) { furnitures.splice(selectedIndex, 1); selectedIndex = -1; updateUI(); } }
+
+    draw();
+</script>
+</body>
+</html>
